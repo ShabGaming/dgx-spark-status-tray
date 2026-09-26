@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build
+
+      - name: Publish (framework-dependent, sanity check)
+        run: dotnet publish src/SparkTray -c Release -r win-x64 --self-contained false
+
+      - name: Publish (self-contained + ReadyToRun, sanity check)
+        run: dotnet publish src/SparkTray -c Release -r win-x64 --self-contained -p:PublishReadyToRun=true
