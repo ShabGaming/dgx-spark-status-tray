@@ -6,6 +6,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>SparkTray</RootNamespace>
     <AssemblyName>SparkTray</AssemblyName>
+    <Version>0.1.0</Version>
+    <Product>DGX Spark Status Tray</Product>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
