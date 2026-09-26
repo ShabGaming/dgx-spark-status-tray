@@ -62,9 +62,10 @@ public sealed class TrayApplicationContext : ApplicationContext
         };
         _notifyIcon.DoubleClick += (_, _) => OpenSettings();
 
-        _healthCheck.Start();
-
+        // Decide on an NVIDIA Sync import before the first health check ever fires, so
+        // that check runs against real settings instead of racing a still-empty hostname.
         MaybeOfferNvidiaSyncImport();
+        _healthCheck.Start();
     }
 
     private void OnHealthStatusChanged(object? sender, HealthStatus status)
@@ -131,7 +132,6 @@ public sealed class TrayApplicationContext : ApplicationContext
         _settings.Ssh.Port = import.Port;
         _settings.Ssh.PrivateKeyPath = import.PrivateKeyPath;
         _settingsStore.Save(_settings);
-        _healthCheck.Restart();
     }
 
     private void OpenSettings()

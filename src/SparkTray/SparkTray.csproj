@@ -20,6 +20,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="SparkTray.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="assets\icons\*.ico" />
   </ItemGroup>
 

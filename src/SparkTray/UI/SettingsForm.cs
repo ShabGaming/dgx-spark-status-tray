@@ -15,7 +15,19 @@ public sealed class SettingsForm : Form
     private readonly TextBox _hostnameBox = new();
     private readonly NumericUpDown _intervalBox = new() { Minimum = 5, Maximum = 3600 };
     private readonly NumericUpDown _timeoutBox = new() { Minimum = 1, Maximum = 60 };
-    private readonly CheckBox _icmpCheckBox = new() { Text = "Also check ICMP ping (informational only)" };
+    // AutoSize on a CheckBox inside these nested Table/FlowLayoutPanels hits the same
+    // measurement-timing problem the GroupBoxes did (see CreateGroup) - the control gets
+    // assigned a Bounds narrower than its actual text needs and the label just clips,
+    // rather than wrapping. An explicit fixed width sidesteps it entirely.
+    private const int CheckboxWidth = 400;
+
+    private readonly CheckBox _icmpCheckBox = new()
+    {
+        Text = "Also check ICMP ping (informational only)",
+        AutoSize = false,
+        Width = CheckboxWidth,
+        Height = 20,
+    };
 
     private readonly TextBox _sshUserBox = new();
     private readonly NumericUpDown _sshPortBox = new() { Minimum = 1, Maximum = 65535 };
@@ -25,14 +37,32 @@ public sealed class SettingsForm : Form
     private readonly Label _importStatusLabel = new() { AutoSize = true, ForeColor = SystemColors.GrayText };
 
     private readonly TextBox _shutdownCommandBox = new();
+    // Confirmed CheckBox reliably renders neither wrapped nor explicit "\n" multi-line
+    // text in this layout - a short one-line label is the robust option; the full
+    // explanation lives in the README instead of fighting the control for two lines.
     private readonly CheckBox _promptForSudoPasswordCheckBox = new()
     {
-        Text = "Ask for the sudo password each time instead of requiring passwordless sudo",
+        Text = "Ask for sudo password each time",
+        AutoSize = false,
+        Width = CheckboxWidth,
+        Height = 20,
     };
     private readonly TextBox _ignoreListBox = new() { Multiline = true, ScrollBars = ScrollBars.Vertical, AcceptsReturn = true };
 
-    private readonly CheckBox _loggingCheckBox = new() { Text = "Write a troubleshooting log file" };
-    private readonly CheckBox _autostartCheckBox = new() { Text = "Start with Windows" };
+    private readonly CheckBox _loggingCheckBox = new()
+    {
+        Text = "Write a troubleshooting log file",
+        AutoSize = false,
+        Width = CheckboxWidth,
+        Height = 20,
+    };
+    private readonly CheckBox _autostartCheckBox = new()
+    {
+        Text = "Start with Windows",
+        AutoSize = false,
+        Width = CheckboxWidth,
+        Height = 20,
+    };
 
     public AppSettings Result { get; private set; }
 
@@ -50,13 +80,20 @@ public sealed class SettingsForm : Form
         Padding = new Padding(12);
         AutoScroll = true;
 
-        var layout = new TableLayoutPanel
+        // A single-column TableLayoutPanel with Dock=Fill + AutoSize=true is a classic
+        // WinForms trap: the Percent(100) column has no real width to measure against until
+        // the panel itself has been sized, but AutoSize wants to size the panel from its
+        // children first - so on the first layout pass every AutoSize child (the GroupBoxes,
+        // and every Label inside them) gets measured against a near-zero width and wraps its
+        // text one character per line. A plain top-down FlowLayoutPanel sidesteps that
+        // circular dependency entirely - it just stacks children at their own sizes.
+        var layout = new FlowLayoutPanel
         {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
             AutoSize = true,
+            Dock = DockStyle.Top,
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
         layout.Controls.Add(BuildTargetGroup());
         layout.Controls.Add(BuildSshGroup());
@@ -69,9 +106,26 @@ public sealed class SettingsForm : Form
         LoadFrom(Result);
     }
 
+    private const int GroupWidth = 440;
+
+    // AutoSize=true plus an explicit Width fights itself (AutoSize wins and recomputes
+    // width from content). Pinning Minimum/MaximumSize.Width to the same value instead
+    // gives every group a stable, known width from the very first layout pass - which is
+    // exactly what the inner TableLayoutPanels' Percent(100) columns need to measure
+    // against correctly - while still letting height grow to fit content.
+    private static GroupBox CreateGroup(string text) => new()
+    {
+        Text = text,
+        AutoSize = true,
+        MinimumSize = new Size(GroupWidth, 0),
+        MaximumSize = new Size(GroupWidth, 0),
+        Padding = new Padding(8),
+        Margin = new Padding(0, 0, 0, 8),
+    };
+
     private GroupBox BuildTargetGroup()
     {
-        var group = new GroupBox { Text = "Target", Width = 440, AutoSize = true, Padding = new Padding(8) };
+        var group = CreateGroup("Target");
         var panel = new TableLayoutPanel { ColumnCount = 2, AutoSize = true, Dock = DockStyle.Top };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -89,7 +143,7 @@ public sealed class SettingsForm : Form
 
     private GroupBox BuildSshGroup()
     {
-        var group = new GroupBox { Text = "SSH (used for shutdown and the pre-shutdown check)", Width = 440, AutoSize = true, Padding = new Padding(8) };
+        var group = CreateGroup("SSH (used for shutdown and the pre-shutdown check)");
         var panel = new TableLayoutPanel { ColumnCount = 3, AutoSize = true, Dock = DockStyle.Top };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -125,7 +179,7 @@ public sealed class SettingsForm : Form
 
     private GroupBox BuildShutdownGroup()
     {
-        var group = new GroupBox { Text = "Shutdown", Width = 440, AutoSize = true, Padding = new Padding(8) };
+        var group = CreateGroup("Shutdown");
         var panel = new TableLayoutPanel { ColumnCount = 1, AutoSize = true, Dock = DockStyle.Top };
 
         panel.Controls.Add(new Label { Text = "Shutdown command:", AutoSize = true });
@@ -151,8 +205,11 @@ public sealed class SettingsForm : Form
 
     private GroupBox BuildMiscGroup()
     {
-        var group = new GroupBox { Text = "General", Width = 440, AutoSize = true, Padding = new Padding(8) };
-        var panel = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, Dock = DockStyle.Top };
+        var group = CreateGroup("General");
+        // WrapContents defaults to true, which - combined with the AutoSize timing quirk
+        // these nested panels keep hitting - wraps into a second column instead of
+        // stacking, exactly like the outer layout panel needed this same fix for.
+        var panel = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, Dock = DockStyle.Top };
         panel.Controls.Add(_autostartCheckBox);
         panel.Controls.Add(_loggingCheckBox);
         group.Controls.Add(panel);
@@ -169,8 +226,9 @@ public sealed class SettingsForm : Form
         {
             FlowDirection = FlowDirection.RightToLeft,
             AutoSize = true,
-            Dock = DockStyle.Bottom,
-            Margin = new Padding(0, 12, 0, 0),
+            MinimumSize = new Size(GroupWidth, 0),
+            MaximumSize = new Size(GroupWidth, 0),
+            Margin = new Padding(0, 4, 0, 0),
         };
         panel.Controls.Add(cancelButton);
         panel.Controls.Add(okButton);

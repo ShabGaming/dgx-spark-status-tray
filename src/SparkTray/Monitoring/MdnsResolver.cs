@@ -42,10 +42,18 @@ public sealed class MdnsResolver
             if (fresh is not null)
             {
                 _cache[hostname] = new CacheEntry(fresh, DateTimeOffset.UtcNow);
+                _logger.Info($"mDNS: fresh answer for {hostname} -> {fresh}");
                 return fresh;
             }
 
-            return _cache.TryGetValue(hostname, out var cached) ? cached.Address : null;
+            if (_cache.TryGetValue(hostname, out var cached))
+            {
+                _logger.Warn($"mDNS: no fresh answer for {hostname}, using cached {cached.Address} (resolved {DateTimeOffset.UtcNow - cached.ResolvedAtUtc} ago).");
+                return cached.Address;
+            }
+
+            _logger.Warn($"mDNS: no fresh answer for {hostname} and nothing cached yet.");
+            return null;
         }
     }
 
@@ -128,7 +136,7 @@ public sealed class MdnsResolver
     /// owner name matches the hostname we queried. Anything else in the packet
     /// (other records, other services chattering on the same multicast group) is ignored.
     /// </summary>
-    private static IPAddress? TryParseAAnswer(byte[] buffer, string expectedHostname)
+    internal static IPAddress? TryParseAAnswer(byte[] buffer, string expectedHostname)
     {
         try
         {
@@ -137,15 +145,23 @@ public sealed class MdnsResolver
                 return null;
             }
 
+            int qdcount = (buffer[4] << 8) | buffer[5];
             int ancount = (buffer[6] << 8) | buffer[7];
             if (ancount == 0)
             {
                 return null;
             }
 
+            // Real mDNS responses conventionally omit the question section entirely
+            // (RFC 6762 section 6) - confirmed directly against a real device, whose
+            // answer came back with qdcount=0. Skipping a question unconditionally here
+            // would misread every real answer by 4+ bytes, so only skip one per qdcount.
             int offset = 12;
-            offset = SkipName(buffer, offset); // question name
-            offset += 4; // qtype + qclass
+            for (var q = 0; q < qdcount; q++)
+            {
+                offset = SkipName(buffer, offset);
+                offset += 4; // qtype + qclass
+            }
 
             for (var i = 0; i < ancount && offset < buffer.Length; i++)
             {

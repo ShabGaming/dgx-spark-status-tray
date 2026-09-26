@@ -20,6 +20,7 @@ internal static class Program
         ApplicationConfiguration.Initialize();
 
         var bootstrapLogger = new RollingFileLogger(enabled: true);
+        bootstrapLogger.Info($"Starting (pid {Environment.ProcessId}, path {Environment.ProcessPath}).");
         var settingsStore = new SettingsStore(bootstrapLogger);
         var initialSettings = settingsStore.Load();
         bootstrapLogger.SetEnabled(initialSettings.Logging.Enabled);

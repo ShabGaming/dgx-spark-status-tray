@@ -87,6 +87,7 @@ public sealed class HealthCheckService : IDisposable
 
             if (address is null)
             {
+                _logger.Warn($"Health check: could not resolve '{hostname}' (no fresh answer and nothing cached).");
                 RecordFailure("Could not resolve host.");
                 return;
             }
@@ -96,11 +97,13 @@ public sealed class HealthCheckService : IDisposable
 
             if (probe.TcpReachable)
             {
+                _logger.Info($"Health check: {hostname} -> {address}:{settings.Ssh.Port} reachable.");
                 _consecutiveFailures = 0;
                 Publish(new HealthStatus(HealthState.Online, DateTimeOffset.UtcNow, null, probe.IcmpReachable));
             }
             else
             {
+                _logger.Warn($"Health check: {hostname} -> {address}:{settings.Ssh.Port} TCP connect failed (timeout {timeout.TotalSeconds}s, icmp={probe.IcmpReachable}).");
                 RecordFailure("TCP connect failed.", probe.IcmpReachable);
             }
         }

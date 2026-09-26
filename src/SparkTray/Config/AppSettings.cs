@@ -33,11 +33,12 @@ public sealed class ShutdownSettings
 {
     public string Command { get; set; } = "sudo shutdown -h now";
 
-    // When true, the shutdown dialog asks for the sudo password each time and pipes it to
-    // "sudo -S" over the SSH command's stdin, instead of requiring the Spark to be set up
-    // with passwordless sudo for the shutdown command. The password is never persisted -
-    // only ever held in memory for that one shutdown attempt.
-    public bool PromptForSudoPassword { get; set; }
+    // When true (the default), the shutdown dialog asks for the sudo password each time and
+    // pipes it to "sudo -S" over the SSH command's stdin, instead of requiring the Spark to
+    // be set up with passwordless sudo for the shutdown command - a safer out-of-the-box
+    // default than expecting every user to edit /etc/sudoers.d before this feature works at
+    // all. The password is never persisted - only ever held in memory for that one attempt.
+    public bool PromptForSudoPassword { get; set; } = true;
 
     // Kernel worker/helper threads (kworker/*, rcu_*, ...) are filtered structurally in
     // ProcessActivityCheck regardless of this list - they're never meaningful "user work"
