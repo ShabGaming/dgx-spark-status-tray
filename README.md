@@ -30,9 +30,9 @@ Unzip, run `SparkTray.exe`, done. There's no installer - it's a single exe you c
 
 ### A note on shutting down over SSH
 
-The shutdown command (`sudo shutdown -h now` by default) needs `sudo` to not block on an interactive password prompt, since there's no TTY attached to a command run this way. You've got two options:
+The shutdown command (`sudo shutdown -h now` by default) needs `sudo` to not block on an interactive password prompt, since there's no TTY attached to a command run this way. By default, the app handles this for you: **"Ask for sudo password each time"** is on in Settings, so you get a small password prompt right in the shutdown confirmation dialog. The password is only ever held in memory for that one shutdown attempt - it's never written to `settings.json` or logged anywhere, and it travels over the already-encrypted SSH connection.
 
-**Option A - passwordless sudo for just this command** (no prompt, ever):
+If you'd rather not be prompted at all, turn that setting off and set up passwordless sudo for just this command instead:
 
 ```
 your-username ALL=(ALL) NOPASSWD: /usr/sbin/shutdown
@@ -40,7 +40,12 @@ your-username ALL=(ALL) NOPASSWD: /usr/sbin/shutdown
 
 (`sudo visudo -f /etc/sudoers.d/spark-tray` and add the line above, adjusted for your username.)
 
-**Option B - let the app ask for your sudo password each time.** Turn on "Ask for the sudo password each time" in Settings, and you'll get a small password prompt right in the shutdown confirmation dialog instead. The password is only ever held in memory for that one shutdown attempt - it's never written to `settings.json` or logged anywhere, and it travels over the already-encrypted SSH connection. This only works if your shutdown command actually starts with `sudo `; if you're using a custom wrapper script instead, you'll need Option A (or your own script's own privilege handling).
+Either way, this only applies if your shutdown command actually starts with `sudo `; if you're using a custom wrapper script instead, you'll need the passwordless-sudo route (or your own script's own privilege handling) since there's nothing to prompt for otherwise.
+
+## Roadmap
+
+- [ ] A proper application icon (currently the default WinForms icon).
+- [ ] Better-designed system tray status icons (currently simple colored-dot placeholders for online/offline/checking/error).
 
 ## Building from source
 
