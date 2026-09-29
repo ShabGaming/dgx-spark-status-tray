@@ -42,10 +42,9 @@ your-username ALL=(ALL) NOPASSWD: /usr/sbin/shutdown
 
 Either way, this only applies if your shutdown command actually starts with `sudo `; if you're using a custom wrapper script instead, you'll need the passwordless-sudo route (or your own script's own privilege handling) since there's nothing to prompt for otherwise.
 
-## Roadmap
+## Icons
 
-- [ ] A proper application icon (currently the default WinForms icon).
-- [ ] Better-designed system tray status icons (currently simple colored-dot placeholders for online/offline/checking/error).
+The application and tray status icons were generated using ChatGPT's image generation capabilities.
 
 ## Building from source
 

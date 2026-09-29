@@ -6,11 +6,12 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>SparkTray</RootNamespace>
     <AssemblyName>SparkTray</AssemblyName>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Product>DGX Spark Status Tray</Product>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>assets\icons\dgx-spark-status-tray-Application-icon.ico</ApplicationIcon>
 
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
@@ -24,7 +25,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="assets\icons\*.ico" />
+    <!-- The exe/taskbar icon (wired via ApplicationIcon above) isn't one of the tray-state
+         icons TrayIcons.cs loads by name, so it's excluded here. -->
+    <EmbeddedResource Include="assets\icons\*.ico" Exclude="assets\icons\dgx-spark-status-tray-Application-icon.ico" />
   </ItemGroup>
 
 </Project>
